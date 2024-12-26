@@ -1,6 +1,6 @@
 # pwncmd
 
-**pwncmd** is an interactive shell for the [pwn.college](https://pwn.college) platform. It lets users start challenges and explore dojos and levels through a terminal interface.
+**pwncmd** is an interactive shell for the [pwn.college](https://pwn.college) platform. It lets users start challenges and explore dojos through a terminal interface.
 
 ## Features
 
