@@ -861,7 +861,6 @@ def interactive_shell():
         readline.read_history_file(HISTORY_PATH)
     except FileNotFoundError:
         pass 
-
     try:
         while True:
             cmd = prompt()
