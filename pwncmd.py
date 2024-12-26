@@ -8,6 +8,8 @@ import os
 import base64
 import ast
 import shutil
+import getpass
+import readline
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -33,10 +35,12 @@ DOJOS_ERR_MSG = "An error occurred while getting dojos:"
 SAVE_CREDS_WARNING = "You set remember creds to true. Be aware that this might not be secure."
 
 INSECURE_KEY = bytes.fromhex("cafebabedeadbeef133713370ff1cebadbadbadbadcafebadbadbaddeadbeeff")
+
 SAVED_CREDS_PATH = "./.login"
 CONFIG_PATH = "./.config"
+HISTORY_PATH = './.pwncmd_history'
 
-config = {"remember_creds" : False, "home" : "/"}
+config = {"remember_creds" : False, "home" : "/", "aliases" : {}}
 logged_in = False
 
 current_level_descriptions = {"pwd" : "aaah"}
@@ -47,25 +51,48 @@ current_level_ids = {"pwd" : "aaah"}
 # Global session
 session = requests.Session()
 
+def clear_screen():
+    os.system("clear") # You better not use windows
+
 ############# PROFILE ################
 
-def print_profile(name):
+def print_awards(awards):
+    for award in awards:
+        print(award)
+
+def print_profile(name, belt, awards):
     print(f"Username: {name}")
+    if belt:
+        print(f"Belt: {belt}")
+    if awards:
+        print_awards(awards)
 
 def get_profile_info(profile_html):
     soup = BeautifulSoup(profile_html, 'html.parser')
     name_element = soup.find('h1')
     if not name_element:
-        print(PROFILE_ERR_MSG, f"Error occurred while trying to fetch username. Response: {profile_html}")
+        print(PROFILE_ERR_MSG, f"Error occurred while trying to find username. Response: {profile_html}")
         return
     name = name_element.text
-    return name
+    belt_element = soup.find("img", {"class" : "scoreboard-belt"})
+    belt = None
+    if belt_element:
+        belt = belt_element.get("src")
+        if belt:
+            belt = belt[35:belt.find('.')]
+    awards = None
+    h2 = soup.find("h2")
+    if h2:
+        awards_elements = h2.find_all("span", title=True)
+        awards = [award.get("title") for award in awards_elements]
+
+    return name, belt, awards
 
 ############# LOGIN ###############
 
 def ask_for_creds():
     username = input("Username or email: ")
-    password = input("Password: ")
+    password = getpass.getpass("Password: ")
 
     return username, password
 
@@ -192,10 +219,252 @@ def set_home(new_home = None):
     write_config(config)
     print(f"HOME = {new_home}")
 
+def alias(argv1):
+    try:
+        alias, alias_cmd = argv1.split('=')
+    except ValueError:
+        print("man alias")
+        return
+
+    global config
+    config["aliases"][alias] = alias_cmd
+
+    write_config(config)
+    print(f"Typing {alias} triggers {alias_cmd}.")
+
+########### GETTING HELP ############
+
 def help():
+    print("Commands:")
+    cmds = """        "help" or "?" - Shows this text.
+        "man <cmd_name>" - Manual for <cmd_name>.
+        "alias" - Create an alias for a command.
+        "login" Log into you pwn.college account.
+        "logout" - Log out of your pwn.college account.
+        "start <level_name>" or "s <level_name>" - Start <level_name>..
+        "practice <level_name>" or "p <level_name>" - Practice <level_name>.
+        "profile" - Check out your fantastic stats.
+        "dojos" - Show dojos.
+        "ls" - List dojos/modules/levels in working directory.
+        "set-home" - Set default home path.
+        "remember-me" - Remember login credentials.
+        "forget" - Forget and remove login credentials.
+        "cd" - Change working directory.
+        "desc <level_name>" or "x/s <level_name>" - Print description of <level_name>.
+        "q" or ":x" or "exit" or "quit" - Exit.
+    """
+    print(cmds)
+    print("If something doesn't work as expected, RTFM.")
+    print("If you are sure it is an error in the code, submit an issue to GitHub.")
+
+def man(cmd_name):
+    MAN_HELP = """Displays the list of available commands."""
+
+    MAN_MAN = """
+    Shows the manual for a specific command.
+    Example:
+
+    (pwncmd)-[/]
+    >> man man
+
+        Shows the manual for a specific command.
+        Example:
+
+        (pwncmd)-[/]
+        >> man man
+
+            Shows the manual for a specific command.
+            Example:
+
+            (pwncmd)-[/]
+            >> man man
+
+                Shows the manual for a specific command.
+                Example:
+                    RecursionError
+    """
+    MAN_ALIAS = """
+    Creates an alias for a command. 
+    Example:
+
+    (pwncmd)-[/]
+    >> alias li=login
+    Typing li triggers login.
+    """
+    MAN_LOGIN = """
+    Logs into your pwn.college account. If you don't have remember-me on, login will prompt you for username/email and password.
+    Example with remember-me:
+
+    (pwncmd)-[/]
+    >> login
+    You set remember creds to true. Be aware that this might not be secure.
+    Logged in successfully as hacker!
+    
+    Example without remember-me:
+
+    (pwncmd)-[/]
+    >> login
+    Username or email: 1337hacker
+    Password:
+    Logged in successfully as 1337hacker!
+    """
+    MAN_LOGOUT = """
+    Logs out of your pwn.college account.
+    """
+    MAN_START = """
+    Starts the specified level. If you are not logged in, it will run login first.
+    Example:
+
+    (pwncmd)-[/software-exploitation/file-struct-exploits]
+    >> s level1
+    Starting level1 in file-struct-exploits in software-exploitation...
+    level1 started successfully!
+    """
+    MAN_PRACTICE = """
+    Runs the specified level in practice mode.
+    Example:
+
+    (pwncmd)-[/software-exploitation/file-struct-exploits]
+    >> p level1
+    Starting level1 in file-struct-exploits in software-exploitation...
+    level1 started successfully!
+    """
+    MAN_PROFILE = """
+    Displays your statistics. If you are not logged in, it will login automatically.
+    Example:
+
+    (pwncmd)-[/]
+    >> profile
+    Username: 1337hacker
+    Belt: black
+    Awarded for completing the Pwntools Tutorials dojo.
+    """
+    MAN_DOJOS = """
+    Shows the available dojos.
+    Example:
+
+    (pwncmd)-[/software-exploitation/file-struct-exploits]
+    >> dojos
+    ====== Getting Started =====
+    +-----------------------+----------+-------------------+
+    | Dojo                  | Progress |              Path |
+    +-----------------------+----------+-------------------+
+    | Getting Started       | 100.0 %  |          /welcome |
+    | Linux Luminarium      |  1.19 %  | /linux-luminarium |
+    | Computing 101         | 71.21 %  |    /computing-101 |
+    | Playing With Programs | 52.11 %  |     /fundamentals |
+    +-----------------------+----------+-------------------+
+    ====== Core Material =====
+    +------------------------+----------+-------------------------+
+    | Dojo                   | Progress |                    Path |
+    +------------------------+----------+-------------------------+
+    | Intro to Cybersecurity | 74.44 %  | /intro-to-cybersecurity |
+    | Program Security       | 100.0 %  |       /program-security |
+    | System Security        | 84.21 %  |        /system-security |
+    | Software Exploitation  | 38.73 %  |  /software-exploitation |
+    +------------------------+----------+-------------------------+
+    ====== Community Material =====
     ...
-def alias():
-    ...
+    """
+    MAN_LS = """
+    Lists dojos, modules, or levels in the current directory. This is an essential command for pwncmd. When you change directory (man cd) and want to see what dojos, modules or levels are there, you use ls. Note that ls can NOT be used with an argument. You always need to cd first.
+    Example:
+
+    (pwncmd)-[/software-exploitation]
+    >> ls
+    Printing modules..
+    +--------------------------------+----------+--------------------------------------------------------+
+    | Module                         | Progress | Path                                                   |
+    +--------------------------------+----------+--------------------------------------------------------+
+    | Return Oriented Programming    |  100.0 % | /software-exploitation/return-oriented-programming/    |
+    | Format String Exploits         |  100.0 % | /software-exploitation/format-string-exploits/         |
+    | File Struct Exploits           |   65.0 % | /software-exploitation/file-struct-exploits/           |
+    | Dynamic Allocator Misuse       |    0.0 % | /software-exploitation/dynamic-allocator-misuse/       |
+    | Exploitation Primitives        |    0.0 % | /software-exploitation/memory-mastery/                 |
+    | Dynamic Allocator Exploitation |    0.0 % | /software-exploitation/dynamic-allocator-exploitation/ |
+    | Microarchitecture Exploitation |    0.0 % | /software-exploitation/speculative-execution/          |
+    | Kernel Exploitation            |    0.0 % | /software-exploitation/kernel-exploitation/            |
+    +--------------------------------+----------+--------------------------------------------------------+
+    """
+    MAN_SETHOME = """
+    Sets the default home path to argv[1]. This is useful when you are currently working on a specific module - you can set your home there and then every time you start pwncmd, you will be right there.
+    Example:
+
+    (pwncmd)-[/]
+    >> set-home /software-exploitation/file-struct-exploits
+    HOME = /software-exploitation/file-struct-exploits
+    """
+    MAN_REMEMBERME = """
+    Remembers your login credentials. The credentials are saved in ./.login and are encrypted using AES-256. This unfortunately doesn't guarantee them any security, as the key is hardcoded. Be aware of that if you are going to use it.
+    Example:
+
+    (pwncmd)-[/]
+    >> remember-me
+    You set remember creds to true. Be aware that this might not be secure.
+    """
+    MAN_FORGET = """
+    Forgets and removes your login credentials if you saved them using remember-me.
+    Example:
+
+    (pwncmd)-[/]
+    >> forget
+    You've been successfully forgotten.
+    """
+    MAN_CD = """
+    Changes the working directory to argv[1]. If no arguments given, changes working directory to home (see man set-home). You can use either absolute or relative paths. 
+    pwncmd works on a similar principle as UNIX's filesystem. Each route on pwn.college which contains either dojos, modules or levels can be interpreted as a directory which contains those files. When you cd to e.g. software-exploitation, you can then use ls to list all the modules there. In order to start a challenge, you need to have pwd = dojo/module_of_the_chall.
+    Example:
+
+    (pwncmd)-[/software-exploitation/file-struct-exploits]
+    >> cd ..
+    (pwncmd)-[/software-exploitation]
+    >> cd dynamic-allocator-misuse
+    (pwncmd)-[/software-exploitation/dynamic-allocator-misuse]
+    >>
+    You can see the current working directory at \\(pwncmd\\)-\\[(.*)\\]
+    """
+    MAN_DESCRIPTION = """
+    Prints the description of the specified level. When your working directory contains levels, you can print the description of a specified one using desc <level_name> or x/s <level_name>.
+    Example:
+
+    (pwncmd)-[/software-exploitation/dynamic-allocator-misuse]
+    >> x/s level1.0
+    Exploit a use-after-free vulnerability to get the flag.
+    """
+    MAN_EXIT = """
+    Exits the application.
+    """
+
+    man_entries = {
+        "help" : MAN_HELP,
+        "?" : MAN_HELP,
+        "man" : MAN_MAN,
+        "alias" : MAN_ALIAS,
+        "login" : MAN_LOGIN,
+        "logout" : MAN_LOGOUT,
+        "start" : MAN_START,
+        "s" : MAN_START,
+        "practice" : MAN_PRACTICE,
+        "p" : MAN_PRACTICE,
+        "profile" : MAN_PROFILE,
+        "dojos" : MAN_DOJOS,
+        "ls" : MAN_LS,
+        "set-home" : MAN_SETHOME,
+        "remember-me" : MAN_REMEMBERME,
+        "forget" : MAN_FORGET,
+        "cd" : MAN_CD,
+        "desc" : MAN_DESCRIPTION,
+        "x/s" : MAN_DESCRIPTION,
+        "q" : MAN_EXIT,
+        ":x" : MAN_EXIT,
+        "exit" : MAN_EXIT,
+        "quit" : MAN_EXIT,
+    }
+    try: 
+        print(man_entries[cmd_name])
+    except KeyError:
+        help()
+
 def login():
     global session, logged_in
     nonce = get_nonce()
@@ -229,8 +498,9 @@ def login():
     
     
 def logout():
-    global logged_in
+    global logged_in, session
     logged_in = False
+    session = requests.Session()
 
 def get_csrf_token():
     global session, pwd
@@ -275,7 +545,6 @@ def start_challenge(level_name = None, practice = False):
     
     # Levels have different id's than names..
     level_id = get_level_id_by_name(level_name) 
-    print(f"{level_id = }")
 
     if not level_id:
         return
@@ -313,13 +582,15 @@ def practice_challenge(level_name):
 
 def view_profile():
     global session
+    if not logged_in:
+        login()
     resp = session.get(PROFILE_URL)
     if resp.status_code != 200:
         print(PROFILE_ERR_MSG, resp.text, f"\n{resp.status_code = }")
         return
-    name = get_profile_info(resp.text)
+    name, belt, awards = get_profile_info(resp.text)
     
-    print_profile(name)
+    print_profile(name, belt, awards)
 
 ####### SHOW DOJOS #######
    
@@ -370,7 +641,6 @@ def parse_dojos(dojos_html):
     return categories, names_by_category, progresses_by_category, paths_by_category
     
 def print_dojos(dojos_html):
-    print("Printing dojos..")
     categories, names_by_category, progresses_by_category, paths_by_category = parse_dojos(dojos_html)
     
     for category in categories:
@@ -450,7 +720,6 @@ def parse_levels(levels_html):
 
 def print_modules(modules_html):
     global logged_in
-    print("Printing modules..")
     names, progresses, paths = parse_modules(modules_html)
     if not (names and progresses and paths):
         print("No modules found.")
@@ -527,13 +796,17 @@ def print_level_description(level_name):
     parse_levels(resp.text)
     print_level_description(level_name)
     
+def save_and_quit():
+    readline.write_history_file(HISTORY_PATH)
+    quit()
      
 def resolve_cmd(cmd_str):
     global config
-    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s"}
+    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man"}
     commands = {
         "help" : help,
         "?" : help,
+        "man" : man,
         "alias" : alias,
         "login" : login,
         "logout" : logout,
@@ -550,10 +823,10 @@ def resolve_cmd(cmd_str):
         "cd" : change_directory,
         "desc" : print_level_description,
         "x/s" : print_level_description, # gdb vibes
-        "q" : quit,
-        ":x" : quit,
-        "exit" : quit,
-        "quit" : quit,
+        "q" : save_and_quit,
+        ":x" : save_and_quit,
+        "exit" : save_and_quit,
+        "quit" : save_and_quit,
     } 
     try:
         cmd = cmd_str.split()
@@ -575,6 +848,7 @@ def resolve_cmd(cmd_str):
 def prompt():
     global pwd
     print(f"(pwncmd)-[{pwd}]\n>> ", end="", flush=True)
+
     return input().strip()
 
 def interactive_shell():
@@ -582,12 +856,20 @@ def interactive_shell():
     if not read_config():
         write_config(config)
     pwd = config["home"]
+
+    try:
+        readline.read_history_file(HISTORY_PATH)
+    except FileNotFoundError:
+        pass 
+
     try:
         while True:
             cmd = prompt()
-            resolve_cmd(cmd)
+            if cmd: 
+                readline.add_history(cmd)
+                resolve_cmd(cmd)
     except KeyboardInterrupt:
-        quit()
+        save_and_quit()
 
 def main():
     if len(sys.argv) > 1:
