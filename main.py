@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from re import error
 import requests
 import sys
 import os
@@ -7,10 +8,13 @@ import base64
 import ast
 
 from bs4 import BeautifulSoup
+from prettytable import PrettyTable
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
+
+pwd = "/"
 
 BASE_URL = "https://pwn.college"
 LOGIN_URL = f"{BASE_URL}/login?next=/?"
@@ -21,6 +25,7 @@ LOGIN_ERR_MSG = "An error occurred while trying to login:"
 CMD_NOT_FOUND_MSG = "This command does not exist:"
 PROFILE_ERR_MSG = "Could not reach your profile. Are you logged in?"
 DOJOS_ERR_MSG = "An error occurred while getting dojos:"
+
 
 SAVE_CREDS_WARNING = "You set remember creds to true. Be aware that this might not be secure."
 
@@ -33,7 +38,6 @@ config = {"remember_creds" : False}
 logged_in = False
 
 # Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
-pwd = "/"
 
 # Global session
 session = requests.Session()
@@ -225,44 +229,8 @@ def view_profile():
     
     print_profile(name)
 
-def parse_dojos(dojos_html):
-    soup = BeautifulSoup(dojos_html, 'html.parser')
-    scategories = soup.find_all("h2")
-    categories = [category.text for category in scategories]
-    sdojos = soup.find_all("ul", {"class" : "card-list"})
-    names_by_category, progresses_by_category = {}, {}
-
-    for i, category in enumerate(categories):
-        names = [name.text for name in sdojos[i].find_all('h4', {'class' : 'card-title'})]
-        progresses = [progress.get("style").split(':')[1].strip('%') for progress in sdojos[i].find_all("div", {"class" : "progress-bar"})]
-
-        names_by_category[category] = names
-        progresses_by_category[category] = progresses
-    return categories, names_by_category, progresses_by_category
-    
-def print_dojos(dojos_html):
-    from prettytable import PrettyTable  # Import for table formatting (install with pip if not available)
-    
-    categories, names_by_category, progresses_by_category = parse_dojos(dojos_html)
-    
-    for category in categories:
-        print(f"====== {category} =====")
-        
-        table = PrettyTable()
-        table.field_names = ["Dojo Name", "Progress"] if logged_in else ["Dojo Name"]
-        table.align["Dojo Name"] = "l"
-        if logged_in:
-            table.align["Progress"] = "r" 
-        
-        for name, progress in zip(names_by_category[category], progresses_by_category[category]):
-            if logged_in:
-                progress = round(float(progress), 2)
-                table.add_row([name, f"{progress}%"])
-            else:
-                table.add_row([name])
-        
-        print(table)
-    
+####### SHOW DOJOS #######
+   
 def show_dojos():
     global session
     resp = session.get(DOJOS_URL)
@@ -271,7 +239,148 @@ def show_dojos():
         return
     print_dojos(resp.text)
 
-def resolve_cmd(cmd):
+########### CHANGE DIRECTORY ############
+
+def clean_path(input_path):
+    normalized_path = os.path.normpath(input_path)
+    valid_path = normalized_path
+    
+    return valid_path.replace("//", '/')
+
+def change_directory(dir):
+    global pwd
+    # Absolute path
+    if dir.startswith('/'):
+        pwd = clean_path(dir)
+    else:
+        pwd = clean_path(f"{pwd}/{dir}")
+
+########## LIST DIRECTORY ############
+
+def parse_dojos(dojos_html):
+    soup = BeautifulSoup(dojos_html, 'html.parser')
+    scategories = soup.find_all("h2")
+    categories = [category.text for category in scategories]
+    sdojos = soup.find_all("ul", {"class" : "card-list"})
+    names_by_category, progresses_by_category, paths_by_category = {}, {}, {}
+
+    for i, category in enumerate(categories):
+        names = [name.text for name in sdojos[i].find_all('h4', {'class' : 'card-title'})]
+        progresses = [progress.get("style").split(':')[1].strip('%') for progress in sdojos[i].find_all("div", {"class" : "progress-bar"})]
+        paths = [path.get("href") for path in sdojos[i].find_all("a", {"class" : "text-decoration-none"})]
+
+        names_by_category[category] = names
+        progresses_by_category[category] = progresses
+        paths_by_category[category] = paths
+    return categories, names_by_category, progresses_by_category, paths_by_category
+    
+def print_dojos(dojos_html):
+    print("Printing dojos..")
+    categories, names_by_category, progresses_by_category, paths_by_category = parse_dojos(dojos_html)
+    
+    for category in categories:
+        print(f"====== {category} =====")
+        
+        table = PrettyTable()
+        table.field_names = ["Dojo", "Progress", "Path"] if logged_in else ["Dojo", "Path"]
+        table.align["Dojo"] = "l"
+        table.align["Path"] = "r"
+        if logged_in:
+            table.align["Progress"] = "c" 
+        
+        for name, progress, path in zip(names_by_category[category], progresses_by_category[category], paths_by_category[category]):
+            path = path.replace("/dojo", "")
+            if logged_in:
+                progress = round(float(progress), 2)
+                table.add_row([name, f"{progress} %", path])
+            else:
+                table.add_row([name, path])
+        
+        print(table)
+ 
+
+def no_flag(resp):
+    print("No flag for you..")
+    print("You are too deep. Go a few directories up.")
+
+def print_ls_error(resp, flag = "flag{v3ry_s3cret}"):
+    print("How did you hack me??")
+    print(flag)
+
+def print_levels():
+    ...
+
+def parse_levels():
+    ...
+
+
+def print_modules(modules_html):
+    global logged_in
+    print("Printing modules..")
+    names, progresses, paths = parse_modules(modules_html)
+    if not (names and progresses and paths):
+        print("No modules found.")
+        return
+    
+    # Create a table for neatly displaying modules
+    table = PrettyTable()
+    table.field_names = ["Module", "Progress", "Path"] if logged_in else ["Module", "Path"]
+    table.align["Module"] = "l"
+    if logged_in:
+        table.align["Progress"] = "r"
+    table.align["Path"] = "l"
+
+    for name, progress, path in zip(names, progresses, paths):
+        if logged_in:
+            progress = round(float(progress), 2)
+            table.add_row([name, f"{progress} %", path])
+        else:
+            table.add_row([name, path])
+    
+    print(table)
+
+def parse_modules(modules_html):
+    soup = BeautifulSoup(modules_html, 'html.parser')
+    sfiles = soup.find("ul", {"class" : "card-list"})
+    if not sfiles:
+        return None, None, None
+
+    names = [name.text for name in sfiles.find_all('h4', {'class' : 'card-title'})]
+    progresses = [progress.get("style").split(':')[1].strip('%') for progress in sfiles.find_all("div", {"class" : "progress-bar"})]
+    paths = [path.get("href") for path in sfiles.find_all("a", {"class" : "text-decoration-none"})]
+
+    return names, progresses, paths
+ 
+
+def list_files():
+    global pwd, session
+    LS_FUNCTIONS = [print_ls_error, print_dojos, print_modules, print_levels]
+    effective_pwd = pwd
+    filetype = pwd.count('/') # 1 = "Dojo", 2 = "Module", 3 = "Level" other = "Unknown Type"
+    if pwd == "/":
+        effective_pwd = "/dojos"
+    if effective_pwd == "/dojos":
+        filetype = 1
+    else:
+        filetype += 1
+    try:
+        ls_func = LS_FUNCTIONS[filetype]
+    except IndexError:
+        ls_func = no_flag
+    resp = session.get(f"{BASE_URL}{effective_pwd}")
+    if resp.status_code != 200:
+        print(f"An error occurred while trying to list files in {pwd}:", f"Status code not 200 ({resp.status_code}).")
+        return
+    try:
+        ls_func(resp.text)
+    except error as e:
+        print(f"An error occurred while trying to list files in {pwd}:", "Cannot list files in this directory.")
+        print(e)
+
+
+
+def resolve_cmd(cmd_str):
+    ONE_ARG = {"cd"}
     commands = {
         "help" : help,
         "?" : help,
@@ -282,22 +391,30 @@ def resolve_cmd(cmd):
         "s" : start_challenge,
         "profile" : view_profile,
         "dojos" : show_dojos,
+        "ls" : list_files,
         "remember-me" : remember_creds,
         "forget" : forget_and_remove,
+        "cd" : change_directory,
         "q" : quit,
         ":x" : quit,
         "exit" : quit,
         "quit" : quit,
     } 
     try:
-        cmd_func = commands[cmd]
+        cmd = cmd_str.split()
+        argv0 = cmd[0]
+        cmd_func = commands[argv0]
     except KeyError:
-        print(CMD_NOT_FOUND_MSG, cmd)
+        print(CMD_NOT_FOUND_MSG, cmd_str)
         return
-    cmd_func()
+    if len(cmd) > 1 and argv0 in ONE_ARG:
+        cmd_func("".join(cmd[1:]))
+    else:
+        cmd_func()
     
 def prompt():
-    print("(pwncmd) ", end="", flush=True)
+    global pwd
+    print(f"(pwncmd)-[{pwd}]\n>> ", end="", flush=True)
     return input().strip()
 
 def interactive_shell():
