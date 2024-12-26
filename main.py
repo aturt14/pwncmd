@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 from re import error
+import re
 import requests
 import sys
 import os
 import base64
 import ast
+import shutil
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -20,6 +22,7 @@ BASE_URL = "https://pwn.college"
 LOGIN_URL = f"{BASE_URL}/login?next=/?"
 PROFILE_URL = f"{BASE_URL}/hacker/" # This url needs for some reason to end with /
 DOJOS_URL = f"{BASE_URL}/dojos"
+START_CHALLENGE_URL = f"{BASE_URL}/pwncollege_api/v1/docker"
 
 LOGIN_ERR_MSG = "An error occurred while trying to login:"
 CMD_NOT_FOUND_MSG = "This command does not exist:"
@@ -33,9 +36,11 @@ INSECURE_KEY = bytes.fromhex("cafebabedeadbeef133713370ff1cebadbadbadbadcafebadb
 SAVED_CREDS_PATH = "./.login"
 CONFIG_PATH = "./.config"
 
-
-config = {"remember_creds" : False}
+config = {"remember_creds" : False, "home" : "/"}
 logged_in = False
+
+current_level_descriptions = {"pwd" : "aaah"}
+current_level_ids = {"pwd" : "aaah"}
 
 # Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
 
@@ -177,6 +182,16 @@ def forget_and_remove():
     write_config(config)
     print("You've been successfully forgotten.")
 
+def set_home(new_home = None):
+    if not new_home:
+        return
+    global config
+    new_home = clean_path(new_home)
+    config["home"] = new_home
+
+    write_config(config)
+    print(f"HOME = {new_home}")
+
 def help():
     ...
 def alias():
@@ -216,8 +231,85 @@ def login():
 def logout():
     global logged_in
     logged_in = False
-def start_challenge():
-    ...
+
+def get_csrf_token():
+    global session, pwd
+    resp = session.get(f"{BASE_URL}{pwd}")
+    if resp.status_code != 200:
+        print("Error when trying to fetch CSRF token.")
+        return
+
+    """
+    'csrfNonce': "9c1cefaea69d32613557c9d9974f778468cad975ea0a2abfe3517c32ec769609"
+    """
+    regex = r"'csrfNonce':\s\"([a-fA-F0-9]{64})\""
+    match = re.search(regex, resp.text)
+
+    if match:
+        csrf_token = match.group(1)
+        return csrf_token
+    else:
+        print(f"CSRF token not found at {BASE_URL}{pwd}..")
+
+def get_level_id_by_name(level_name):
+    global current_level_ids, pwd
+    if current_level_ids["pwd"] != pwd:
+        resp = session.get(f"{BASE_URL}{pwd}")
+        if resp.status_code != 200:
+            print(f"Could not fetch {BASE_URL}{pwd}!")
+            return None
+        parse_levels(resp.text)
+    try:
+        return current_level_ids[level_name]
+    except:
+        if level_name in current_level_ids.values():
+            return level_name
+        print(f"{level_name} doesn't seem to be a vaild level name in {pwd}.")
+        return None
+
+def start_challenge(level_name = None, practice = False):
+    if not level_name:
+        print("Not starting anything.")
+        return
+    global pwd, session
+    
+    # Levels have different id's than names..
+    level_id = get_level_id_by_name(level_name) 
+    print(f"{level_id = }")
+
+    if not level_id:
+        return
+
+    if not logged_in:
+        login()
+
+    # We need to get anti csrf token first
+    csrf_token = get_csrf_token()
+    rheaders = {"CSRF-Token" : csrf_token}
+    pwd_data = pwd.split('/')
+    try:
+        challenge_data = {
+            "challenge" : level_id,
+            "dojo" : pwd_data[1],
+            "module" : pwd_data[2],
+            "practice" : practice,
+        }
+    except IndexError:
+        print(f"Go to a directory with challenges.")
+        return
+
+    resp = session.post(START_CHALLENGE_URL, json=challenge_data, headers=rheaders)
+    print(f"Starting {level_name} in {pwd_data[2]} in {pwd_data[1]}...")
+
+    if resp.status_code != 200:
+        print(f"There was a problem starting the challenge. Check your network connection and if the details are correct.")
+        print(resp.text)
+        print(resp.status_code)
+        return
+    print(f"{level_name} started successfully!")
+
+def practice_challenge(level_name):
+    start_challenge(level_name, True)
 
 def view_profile():
     global session
@@ -247,8 +339,11 @@ def clean_path(input_path):
     
     return valid_path.replace("//", '/')
 
-def change_directory(dir):
+def change_directory(dir = None):
     global pwd
+    if not dir:
+        pwd = config["home"]
+        return
     # Absolute path
     if dir.startswith('/'):
         pwd = clean_path(dir)
@@ -307,11 +402,50 @@ def print_ls_error(resp, flag = "flag{v3ry_s3cret}"):
     print("How did you hack me??")
     print(flag)
 
-def print_levels():
-    ...
 
-def parse_levels():
-    ...
+def print_levels(levels_html):
+    global pwd
+    names, _ = parse_levels(levels_html)  
+
+    if not names:
+        print(f"No levels found in {pwd}.")
+        return
+
+    terminal_width = shutil.get_terminal_size().columns
+
+    column_width = 15
+    num_columns = max(1, terminal_width // column_width)  
+
+    rows = [names[i:i + num_columns] for i in range(0, len(names), num_columns)]
+
+    print(f"Levels in {pwd}:")
+    print("-" * terminal_width)
+    col_format = ("{:<" + str(column_width) + "}") * num_columns
+    for row in rows:
+        print(col_format.format(*row, *([""] * (num_columns - len(row)))))  
+    print("-" * terminal_width)
+
+
+def parse_levels(levels_html):
+    global current_level_descriptions, current_level_ids, pwd
+    soup = BeautifulSoup(levels_html, 'html.parser')
+    challenges = soup.find("div", {"id" : "challenges"})
+    if not challenges:
+        return None, None
+
+    names = [name.text.strip() for name in challenges.find_all('span', {'class' : 'd-sm-block d-md-block d-lg-block'})]
+    descriptions = [desc.text.strip() for desc in challenges.find_all('div', {'class' : 'embed-responsive'})]
+    names = [name for name in names if name != "Start" and name != "Practice"]
+    ids = [id.get("value") for id in challenges.find_all('input', {'id' : 'challenge'})]
+
+    current_level_descriptions = {"pwd" : pwd}
+    for name, description in zip(names, descriptions):
+        current_level_descriptions[name] = description
+    current_level_ids = {"pwd" : pwd}
+    for name, id in zip(names, ids):
+        current_level_ids[name] = id
+    return names, descriptions
+ 
 
 
 def print_modules(modules_html):
@@ -377,10 +511,26 @@ def list_files():
         print(f"An error occurred while trying to list files in {pwd}:", "Cannot list files in this directory.")
         print(e)
 
-
-
+def print_level_description(level_name):
+    global current_level_descriptions, pwd, session
+    # Check if the level desc is cached
+    if current_level_descriptions["pwd"] == pwd:
+        try:
+            print(current_level_descriptions[level_name])
+        except KeyError:
+            print(f"Level name {level_name} not found in {pwd}!")
+        return
+    resp = session.get(f"{BASE_URL}{pwd}")
+    if resp.status_code != 200:
+        print(f"Could not fetch {BASE_URL}{pwd}!")
+        return
+    parse_levels(resp.text)
+    print_level_description(level_name)
+    
+     
 def resolve_cmd(cmd_str):
-    ONE_ARG = {"cd"}
+    global config
+    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s"}
     commands = {
         "help" : help,
         "?" : help,
@@ -389,12 +539,17 @@ def resolve_cmd(cmd_str):
         "logout" : logout,
         "start" : start_challenge,
         "s" : start_challenge,
+        "practice" : practice_challenge,
+        "p" : practice_challenge,
         "profile" : view_profile,
         "dojos" : show_dojos,
         "ls" : list_files,
+        "set-home" : set_home,
         "remember-me" : remember_creds,
         "forget" : forget_and_remove,
         "cd" : change_directory,
+        "desc" : print_level_description,
+        "x/s" : print_level_description, # gdb vibes
         "q" : quit,
         ":x" : quit,
         "exit" : quit,
@@ -405,8 +560,13 @@ def resolve_cmd(cmd_str):
         argv0 = cmd[0]
         cmd_func = commands[argv0]
     except KeyError:
-        print(CMD_NOT_FOUND_MSG, cmd_str)
-        return
+        try:
+            cmd = config["aliases"][cmd_str]
+            argv0 = cmd[0]
+            cmd_func = commands[argv0]
+        except KeyError:
+            print(CMD_NOT_FOUND_MSG, cmd_str)
+            return
     if len(cmd) > 1 and argv0 in ONE_ARG:
         cmd_func("".join(cmd[1:]))
     else:
@@ -418,9 +578,10 @@ def prompt():
     return input().strip()
 
 def interactive_shell():
-    global config
+    global config, pwd
     if not read_config():
         write_config(config)
+    pwd = config["home"]
     try:
         while True:
             cmd = prompt()
