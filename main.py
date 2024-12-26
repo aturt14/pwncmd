@@ -304,9 +304,12 @@ def interactive_shell():
     global config
     if not read_config():
         write_config(config)
-    while True:
-        cmd = prompt()
-        resolve_cmd(cmd)
+    try:
+        while True:
+            cmd = prompt()
+            resolve_cmd(cmd)
+    except KeyboardInterrupt:
+        quit()
 
 def main():
     if len(sys.argv) > 1:
