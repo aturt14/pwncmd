@@ -10,6 +10,7 @@ import ast
 import shutil
 import getpass
 import readline
+import json
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -25,6 +26,7 @@ LOGIN_URL = f"{BASE_URL}/login?next=/?"
 PROFILE_URL = f"{BASE_URL}/hacker/" # This url needs for some reason to end with /
 DOJOS_URL = f"{BASE_URL}/dojos"
 START_CHALLENGE_URL = f"{BASE_URL}/pwncollege_api/v1/docker"
+SUBMIT_FLAG_URL = f"{BASE_URL}/api/v1/challenges/attempt"
 
 LOGIN_ERR_MSG = "An error occurred while trying to login:"
 CMD_NOT_FOUND_MSG = "This command does not exist:"
@@ -45,6 +47,8 @@ logged_in = False
 
 current_level_descriptions = {"pwd" : "aaah"}
 current_level_ids = {"pwd" : "aaah"}
+current_level_cids = {"pwd" : "aaah"}
+running_level = None
 
 # Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
 
@@ -431,6 +435,17 @@ def man(cmd_name):
     >> x/s level1.0
     Exploit a use-after-free vulnerability to get the flag.
     """
+    MAN_FLAG = """
+    Asks for the flag for currently running challenge. If no challenge is running, an argument is reqired (level name).
+    Example:
+
+    (pwncmd)-[/software-exploitation/file-struct-exploits]
+    >> flag level1
+    You set remember creds to true. Be aware that this might not be secure.
+    Logged in successfully as 1337hack3r!
+    Flag: pwn.college{test}
+    You already solved this
+    """
     MAN_EXIT = """
     Exits the application.
     """
@@ -455,6 +470,7 @@ def man(cmd_name):
         "cd" : MAN_CD,
         "desc" : MAN_DESCRIPTION,
         "x/s" : MAN_DESCRIPTION,
+        "flag" : MAN_FLAG,
         "q" : MAN_EXIT,
         ":x" : MAN_EXIT,
         "exit" : MAN_EXIT,
@@ -521,14 +537,18 @@ def get_csrf_token():
     else:
         print(f"CSRF token not found at {BASE_URL}{pwd}..")
 
+def update_level_info():
+    global pwd
+    resp = session.get(f"{BASE_URL}{pwd}")
+    if resp.status_code != 200:
+        print(f"Could not fetch {BASE_URL}{pwd}!")
+        return None
+    parse_levels(resp.text)
+
 def get_level_id_by_name(level_name):
-    global current_level_ids, pwd
+    global current_level_ids, current_level_cids, pwd
     if current_level_ids["pwd"] != pwd:
-        resp = session.get(f"{BASE_URL}{pwd}")
-        if resp.status_code != 200:
-            print(f"Could not fetch {BASE_URL}{pwd}!")
-            return None
-        parse_levels(resp.text)
+        update_level_info()
     try:
         return current_level_ids[level_name]
     except:
@@ -579,6 +599,48 @@ def start_challenge(level_name = None, practice = False):
 
 def practice_challenge(level_name):
     start_challenge(level_name, True)
+
+def get_level_cid_by_name(level_name):
+    global current_level_cids, pwd
+    if current_level_cids["pwd"] != pwd:
+        update_level_info()
+    try:
+        return current_level_cids[level_name]
+    except:
+        print(f"{level_name} doesn't seem to be a vaild level name in {pwd}.")
+        return None
+
+
+
+def submit_flag(level_name = None):
+    global running_level, session
+    if not logged_in:
+        login()
+    if not level_name and running_level:
+        level_name = running_level
+    elif not (running_level or level_name):
+        print(f"argv[1] should be the level name.")
+        return
+    challenge_cid = get_level_cid_by_name(level_name)
+    flag = input("Flag: ")
+    csrf_token = get_csrf_token()
+    flag_headers = {"CSRF-Token" : csrf_token}
+    flag_data = {
+        "challenge_id" : challenge_cid,
+        "submission" : flag,
+    }
+    resp = session.post(SUBMIT_FLAG_URL, json=flag_data, headers=flag_headers)
+    if resp.status_code != 200:
+        print(f"Error when fetching {SUBMIT_FLAG_URL}. Status code: {resp.status_code}, response: {resp.text}.")
+        return
+    resp_json = resp.json()
+    try:
+        print(resp_json["data"]["message"])
+    except:
+        print(f"Response in weird format: {resp.text}")
+    
+    
+     
 
 def view_profile():
     global session
@@ -697,7 +759,7 @@ def print_levels(levels_html):
 
 
 def parse_levels(levels_html):
-    global current_level_descriptions, current_level_ids, pwd
+    global current_level_descriptions, current_level_ids, current_level_cids, pwd
     soup = BeautifulSoup(levels_html, 'html.parser')
     challenges = soup.find("div", {"id" : "challenges"})
     if not challenges:
@@ -707,6 +769,7 @@ def parse_levels(levels_html):
     descriptions = [desc.text.strip() for desc in challenges.find_all('div', {'class' : 'embed-responsive'})]
     names = [name for name in names if name != "Start" and name != "Practice"]
     ids = [id.get("value") for id in challenges.find_all('input', {'id' : 'challenge'})]
+    challenge_ids = [chall_id.get("value") for chall_id in challenges.find_all('input', {'id' : 'challenge-id'})]
 
     current_level_descriptions = {"pwd" : pwd}
     for name, description in zip(names, descriptions):
@@ -714,6 +777,9 @@ def parse_levels(levels_html):
     current_level_ids = {"pwd" : pwd}
     for name, id in zip(names, ids):
         current_level_ids[name] = id
+    for name, chall_id in zip(names, challenge_ids):
+        current_level_cids[name] = int(chall_id)
+
     return names, descriptions
  
 
@@ -802,7 +868,7 @@ def save_and_quit():
      
 def resolve_cmd(cmd_str):
     global config
-    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man"}
+    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man", "flag"}
     commands = {
         "help" : help,
         "?" : help,
@@ -823,6 +889,7 @@ def resolve_cmd(cmd_str):
         "cd" : change_directory,
         "desc" : print_level_description,
         "x/s" : print_level_description, # gdb vibes
+        "flag" : submit_flag,
         "q" : save_and_quit,
         ":x" : save_and_quit,
         "exit" : save_and_quit,
