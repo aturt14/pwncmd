@@ -10,7 +10,7 @@ import ast
 import shutil
 import getpass
 import readline
-import json
+import time
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -259,6 +259,7 @@ def help():
         "forget" - Forget and remove login credentials.
         "cd" - Change working directory.
         "desc <level_name>" or "x/s <level_name>" - Print description of <level_name>.
+        "clear" : Clear screen.
         "q" or ":x" or "exit" or "quit" - Exit.
     """
     print(cmds)
@@ -450,9 +451,13 @@ def man(cmd_name):
     Flag: pwn.college{test}
     You already solved this
     """
+    MAN_CLEAR = """
+    Clears screen. Removes the waste you put in. Hides flags you entered.
+    """
     MAN_EXIT = """
     Exits the application.
     """
+
 
     man_entries = {
         "help" : MAN_HELP,
@@ -475,6 +480,7 @@ def man(cmd_name):
         "desc" : MAN_DESCRIPTION,
         "x/s" : MAN_DESCRIPTION,
         "flag" : MAN_FLAG,
+        "clear" : MAN_CLEAR,
         "q" : MAN_EXIT,
         ":x" : MAN_EXIT,
         "exit" : MAN_EXIT,
@@ -482,6 +488,11 @@ def man(cmd_name):
     }
     try: 
         print(man_entries[cmd_name])
+        if cmd_name == "clear":
+            time.sleep(3)
+            print("Example:")
+            time.sleep(1)
+            clear_screen()
     except KeyError:
         help()
 
@@ -911,6 +922,7 @@ def resolve_cmd(cmd_str):
         "desc" : print_level_description,
         "x/s" : print_level_description, # gdb vibes
         "flag" : submit_flag,
+        "clear" : clear_screen,
         "q" : save_and_quit,
         ":x" : save_and_quit,
         "exit" : save_and_quit,
