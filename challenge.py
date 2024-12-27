@@ -42,7 +42,7 @@ def start_challenge(level_name = None, practice = False):
         print(resp.text)
         print(resp.status_code)
         return
-    running_level = level_name
+    globals.running_level = level_name
     print(f"{level_name} started successfully!")
 
 def practice_challenge(level_name):
