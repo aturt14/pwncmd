@@ -10,7 +10,7 @@ from levels import print_level_description
 from cd import change_directory
 from flag import submit_flag
 from utils import clear_screen, save_and_quit
-from constants import COLOR1, COLOR2, COLOR3, CMD_NOT_FOUND_MSG, HISTORY_PATH
+from constants import COLOR1, COLOR2, COLOR3, CMD_NOT_FOUND_MSG, HISTORY_PATH, PWNCMDRC_PATH
 import globals
 
 from colorama import Style
@@ -71,11 +71,19 @@ def prompt():
 
     return input(prompt_str).strip()
 
+def init_shell():
+    try:
+        with open(PWNCMDRC_PATH, "r") as pwncmdrc:
+            for cmd in pwncmdrc.readlines():
+                resolve_cmd(cmd.strip())
+    except FileNotFoundError:
+        pass
+
 def interactive_shell():
     if not read_config():
         write_config(globals.config)
     globals.pwd = globals.config["home"]
-
+    init_shell()
     try:
         readline.read_history_file(HISTORY_PATH)
     except FileNotFoundError:

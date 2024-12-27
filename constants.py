@@ -26,4 +26,5 @@ INSECURE_KEY = bytes.fromhex("cafebabedeadbeef133713370ff1cebadbadbadbadcafebadb
 
 SAVED_CREDS_PATH = "./.login"
 CONFIG_PATH = "./.config"
-HISTORY_PATH = './.pwncmd_history'
+HISTORY_PATH = "./.pwncmd_history"
+PWNCMDRC_PATH = "./.pwncmdrc"

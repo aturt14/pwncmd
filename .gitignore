@@ -1,6 +1,7 @@
 .config
 .login
 .pwncmd_history
+.pwncmdrc
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
