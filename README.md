@@ -1,16 +1,15 @@
 # pwncmd
 
-**pwncmd** is an interactive shell for the [pwn.college](https://pwn.college) platform. It lets users start challenges and explore dojos through a terminal interface.
+**pwncmd** is an interactive shell designed for the [pwn.college](https://pwn.college), providing users with a UNIX-like interface to launch challenges and navigate dojos.
 
 ![Preview](./img/preview.png)
 ## Features
 
 - **Interactive Shell:** A UNIX-like interface for easy navigation.
-- **Challenge Management:** Start and practice challenges directly without the cranky GUI.
-- **Dojo Exploration:** List and interact with categorized dojos, modules, and levels.
-- **Customizable Commands:** Set home directories, create aliases, and manage credentials.
-- **Login Persistence:** Optionally save and encrypt your login credentials for quicker access in future sessions.
-- **Command History:** Automatically saves command history, enabling you to easily reuse or modify previous commands.
+- **Challenge Management:** *Start* and *practice* challenges directly without the cranky GUI.
+- **Dojo Exploration:** List and interact with *dojos*, *modules*, and *levels*.
+- **Customizable Commands:** Set *home directories*, create *aliases*, and save credentials.
+- **Command History:** Automatically saves *command history*, enabling you to easily reuse or modify previous commands.
 
 
 ## Installation
@@ -34,6 +33,7 @@ chmod +x ./pwncmd.py
 ```
 
 ## Commands Overview
+A non-exhaustive list of commands (for more, see `help` in the shell):
 ### Basic Commands
 
 `help` or `?`: Display a list of available commands.
@@ -67,9 +67,9 @@ chmod +x ./pwncmd.py
 ## Contributing
 Disclaimer:
 
-This application is *not* bug-free. 
+This application is **not** bug-free. 
 
-In best case, when you find a bug, you solve it yourself and just create a pull request. If that isn't for some reason possible, there is a slight chance that I will find time to solve the issue for you, so just create an issue and pray to the Matrix.
+Ideally, when you find a bug, you solve it yourself and just create a pull request. If that isn't for some reason possible, there is a slight chance that I will find time to solve the issue for you, so just create an issue and pray to the Matrix.
 
 # Known bugs
 1. Listing files in `/dojos` doesn't show actual ASU courses.
