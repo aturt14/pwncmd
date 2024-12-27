@@ -72,4 +72,3 @@ In best case, when you find a bug, you solve it yourself and just create a pull 
 
 # Known bugs
 1. Listing files in `/dojos` doesn't show actual ASU courses.
-2. Backspace can remove the `>>` when typing a command.
