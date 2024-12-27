@@ -14,11 +14,13 @@ import json
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
+from colorama import Fore, Style
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 
+# Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
 pwd = "/"
 
 BASE_URL = "https://pwn.college"
@@ -48,9 +50,11 @@ logged_in = False
 current_level_descriptions = {"pwd" : "aaah"}
 current_level_ids = {"pwd" : "aaah"}
 current_level_cids = {"pwd" : "aaah"}
+is_solved = {"pwd" : "aaah"}
 running_level = None
 
-# Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
+username = None
+
 
 # Global session
 session = requests.Session()
@@ -482,7 +486,7 @@ def man(cmd_name):
         help()
 
 def login():
-    global session, logged_in
+    global session, logged_in, username
     nonce = get_nonce()
     if not nonce:
         print("Login failed..")
@@ -503,9 +507,11 @@ def login():
     resp = session.post(LOGIN_URL, data=login_data)
     if resp.status_code != 200:
         print(LOGIN_ERR_MSG, f"POST request failed: {resp.text}")
+        username = None
         return
     if creds_incorrect(resp.text):
         print(LOGIN_ERR_MSG, "Incorrect credentials!")
+        username = None
         return
     if config["remember_creds"]:
         save_creds((username, password))
@@ -561,7 +567,7 @@ def start_challenge(level_name = None, practice = False):
     if not level_name:
         print("Not starting anything.")
         return
-    global pwd, session
+    global pwd, session, running_level
     
     # Levels have different id's than names..
     level_id = get_level_id_by_name(level_name) 
@@ -595,6 +601,7 @@ def start_challenge(level_name = None, practice = False):
         print(resp.text)
         print(resp.status_code)
         return
+    running_level = level_name
     print(f"{level_name} started successfully!")
 
 def practice_challenge(level_name):
@@ -734,9 +741,18 @@ def print_ls_error(resp, flag = "flag{v3ry_s3cret}"):
     print("How did you hack me??")
     print(flag)
 
+def print_colored_level(name, end = '\n'):
+    global is_solved, running_level
+    if name == running_level:
+        print(f"{Fore.YELLOW}{name}{Style.RESET_ALL}", end = end)
+    elif is_solved.get(name, False):
+        print(f"{Fore.GREEN}{name}{Style.RESET_ALL}", end = end)
+    else:
+        print(f"{Fore.WHITE}{name}{Style.RESET_ALL}", end = end)
+
 
 def print_levels(levels_html):
-    global pwd
+    global pwd, is_solved, running_level
     names, _ = parse_levels(levels_html)  
 
     if not names:
@@ -745,29 +761,34 @@ def print_levels(levels_html):
 
     terminal_width = shutil.get_terminal_size().columns
 
-    column_width = 15
-    num_columns = max(1, terminal_width // column_width)  
-
-    rows = [names[i:i + num_columns] for i in range(0, len(names), num_columns)]
-
     print(f"Levels in {pwd}:")
     print("-" * terminal_width)
-    col_format = ("{:<" + str(column_width) + "}") * num_columns
-    for row in rows:
-        print(col_format.format(*row, *([""] * (num_columns - len(row)))))  
+    
+
+    sorted_names = names
+
+    mid_index = len(sorted_names) // 2 + len(sorted_names) % 2
+    column1 = sorted_names[:mid_index]
+    column2 = sorted_names[mid_index:]
+
+    for level1, level2 in zip(column1, column2):
+        print_colored_level(level1, end = (16 - len(level1)) * ' ')
+        print_colored_level(level2)
+
     print("-" * terminal_width)
 
-
 def parse_levels(levels_html):
-    global current_level_descriptions, current_level_ids, current_level_cids, pwd
+    global current_level_descriptions, current_level_ids, current_level_cids, is_solved, pwd
     soup = BeautifulSoup(levels_html, 'html.parser')
     challenges = soup.find("div", {"id" : "challenges"})
     if not challenges:
         return None, None
 
-    names = [name.text.strip() for name in challenges.find_all('span', {'class' : 'd-sm-block d-md-block d-lg-block'})]
+    names = [name for name in challenges.find_all('span', {'class' : 'd-sm-block d-md-block d-lg-block'})]
+
+    is_solved = {name.text.strip() : (name.find("i", {"class" : True}).get("class")[3].find("unsolved") == -1) for name in names if name.text.strip() != "Start" and name != "Practice"}
+    names = [name.text.strip() for name in names if name.text.strip() != "Start" and name.text.strip() != "Practice"]
     descriptions = [desc.text.strip() for desc in challenges.find_all('div', {'class' : 'embed-responsive'})]
-    names = [name for name in names if name != "Start" and name != "Practice"]
     ids = [id.get("value") for id in challenges.find_all('input', {'id' : 'challenge'})]
     challenge_ids = [chall_id.get("value") for chall_id in challenges.find_all('input', {'id' : 'challenge-id'})]
 
@@ -913,10 +934,13 @@ def resolve_cmd(cmd_str):
         cmd_func()
     
 def prompt():
-    global pwd
-    print(f"(pwncmd)-[{pwd}]\n>> ", end="", flush=True)
+    global pwd, username
+    if logged_in:
+        prompt_str = f"(pwncmd@{username})-[{pwd}]\n>> "
+    else:
+        prompt_str = f"(pwncmd)-[{pwd}]\n>> "
 
-    return input().strip()
+    return input(prompt_str).strip()
 
 def interactive_shell():
     global config, pwd
