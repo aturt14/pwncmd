@@ -10,6 +10,7 @@
 - **Dojo Exploration:** List and interact with *dojos*, *modules*, and *levels*.
 - **Customizable Commands:** Set *home directories*, create *aliases*, and save credentials.
 - **Command History:** Automatically saves *command history*, enabling you to easily reuse or modify previous commands.
+- **Custom Startup Commands** Define commands to be executed at each shell launch.
 
 
 ## Installation
@@ -63,6 +64,21 @@ A non-exhaustive list of commands (for more, see `help` in the shell):
 `alias <alias_name>=<command>`: Create a custom alias for a command.
 `remember-me`: Save login credentials (encrypted, but with a hardcoded key).
 `forget`: Forget and remove saved login credentials.
+
+## Custom Startup Commands
+With the .pwncmdrc configuration file, you can define commands that are automatically executed every time you launch the shell. For instance, you could set `.pwncmdrc` to look like this:
+```
+login
+ls
+```
+This will login automatically and then immediately list the *files* (dojos, modules, or levels) in the working directory. That can be useful when you are working on a specific module (and have it as your home path) and with this setting, you need only to type `s <level_name>` and you are good to go.
+
+## Level colors
+When logged in, levels will be displayed in the following colors:
+
+1. Solved Level: Green
+2. Current Level: Yellow
+3. Other Levels: White
 
 ## Contributing
 Disclaimer:

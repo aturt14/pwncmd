@@ -75,7 +75,8 @@ def init_shell():
     try:
         with open(PWNCMDRC_PATH, "r") as pwncmdrc:
             for cmd in pwncmdrc.readlines():
-                resolve_cmd(cmd.strip())
+                if not cmd.startswith("#"):
+                    resolve_cmd(cmd.strip())
     except FileNotFoundError:
         pass
 
