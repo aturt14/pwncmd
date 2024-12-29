@@ -4,7 +4,7 @@ import requests
 # Shows in which dojo you currently are, e.g. you could go to Program Security, then pwd would be /Program Security
 pwd = "/"
 
-config = {"remember_creds" : False, "home" : "/", "aliases" : {}}
+config = {"remember_creds" : False, "home" : "/", "aliases" : {}, "ssh_privkey_path" : None}
 logged_in = False
 
 current_level_descriptions = {"pwd" : "aaah"}
