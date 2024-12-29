@@ -63,7 +63,7 @@ A non-exhaustive list of commands (for more, see `help` in the shell):
 
 ### Configuration
 
--`alias <alias_name>=<command>`: Create a custom alias for a command.
+- `alias <alias_name>=<command>`: Create a custom alias for a command.
 - `remember-me`: Save login credentials (encrypted, but with a hardcoded key).
 - `forget`: Forget and remove saved login credentials.
 
