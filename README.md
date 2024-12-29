@@ -37,33 +37,35 @@ chmod +x ./pwncmd.py
 A non-exhaustive list of commands (for more, see `help` in the shell):
 ### Basic Commands
 
-`help` or `?`: Display a list of available commands.
-`man <command>`: View the manual for a specific command.
-`exit`, `quit`, `q`, or `:x`: Exit the application.
+- `help` or `?`: Display a list of available commands.
+- `man <command>`: View the manual for a specific command.
+- `exit`, `quit`, `q`, or `:x`: Exit the application.
+- `clear`: Clear screen.
 
 ### Navigation
 
-`cd <path>`: Change working directory (relative or absolute paths supported).
-`ls`: List dojos, modules, or levels in the current directory.
-`set-home <path>`: Set the default home directory.
+- `cd <path>`: Change working directory (relative or absolute paths supported).
+- `ls`: List dojos, modules, or levels in the current directory.
+- `set-home <path>`: Set the default home directory.
 
 ### User Management
 
-`login`: Log in to your pwn.college account.
-`logout`: Log out of your account.
-`profile`: Display user statistics (username, belt, awards).
+- `login`: Log in to your pwn.college account.
+- `logout`: Log out of your account.
+- `profile`: Display user statistics (username, belt, awards).
 
 ### Challenges
 
-`start <level_name>` or `s <level_name>`: Start a specified level.
-`practice <level_name>` or `p <level_name>`: Start a level in practice mode.
-`desc <level_name>` or `x/s <level_name>`: Print the description of a level.
+- `start <level_name>` or `s <level_name>`: Start a specified level.
+- `practice <level_name>` or `p <level_name>`: Start a level in practice mode.
+- `desc <level_name>` or `x/s <level_name>`: Print the description of a level.
+- `flag <flag_or_level_name>`: Submit flag for a specific level.
 
 ### Configuration
 
-`alias <alias_name>=<command>`: Create a custom alias for a command.
-`remember-me`: Save login credentials (encrypted, but with a hardcoded key).
-`forget`: Forget and remove saved login credentials.
+-`alias <alias_name>=<command>`: Create a custom alias for a command.
+- `remember-me`: Save login credentials (encrypted, but with a hardcoded key).
+- `forget`: Forget and remove saved login credentials.
 
 ## Custom Startup Commands
 With the .pwncmdrc configuration file, you can define commands that are automatically executed every time you launch the shell. For instance, you could set `.pwncmdrc` to look like this:
