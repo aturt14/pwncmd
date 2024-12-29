@@ -6,16 +6,23 @@ from constants import SUBMIT_FLAG_URL
 import globals
 
 
-def submit_flag(level_name = None):
+def submit_flag(level_name_or_flag = None):
+    level_name = globals.running_level
+    flag = None
+    # Check if it is a flag
+    if level_name_or_flag:
+        if "{" in level_name_or_flag: # Flags don't really need to be in the correct format, they just need to have the content in {}
+            flag = level_name_or_flag
+        else:
+            level_name = level_name_or_flag
     if not globals.logged_in:
         login()
-    if not level_name and globals.running_level:
-        level_name = globals.running_level
-    elif not (globals.running_level or level_name):
+    if not level_name:
         print(f"argv[1] should be the level name.")
         return
     challenge_cid = get_level_cid_by_name(level_name)
-    flag = input("Flag: ")
+    if not flag:
+        flag = input("Flag: ")
     csrf_token = get_csrf_token()
     flag_headers = {"CSRF-Token" : csrf_token}
     flag_data = {

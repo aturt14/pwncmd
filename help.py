@@ -19,6 +19,7 @@ def help():
         "forget" - Forget and remove login credentials.
         "cd" - Change working directory.
         "desc <level_name>" or "x/s <level_name>" - Print description of <level_name>.
+        "flag <flag_or_level_name>" - Submit flag for a specific level.
         "clear" : Clear screen.
         "q" or ":x" or "exit" or "quit" - Exit.
     """
@@ -201,7 +202,7 @@ def man(cmd_name):
     Exploit a use-after-free vulnerability to get the flag.
     """
     MAN_FLAG = """
-    Asks for the flag for currently running challenge. If no challenge is running, an argument is reqired (level name).
+    Asks for the flag for currently running challenge. If no challenge is running, an argument is reqired (level name). If argv[1] contains '{' and there is a running level, it will interpret argv[1] as the flag and submit it for the running level.
     Example:
 
     (pwncmd)-[/software-exploitation/file-struct-exploits]
