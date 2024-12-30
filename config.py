@@ -37,7 +37,7 @@ def forget_and_remove():
 
 def set_home(new_home = None):
     if not new_home:
-        return
+        new_home = globals.pwd
     new_home = clean_path(new_home)
     globals.config["home"] = new_home
 
