@@ -44,8 +44,8 @@ A non-exhaustive list of commands (for more, see `help` in the shell):
 
 ### Navigation
 
-- `cd <path>`: Change working directory (relative or absolute paths supported).
-- `ls`: List dojos, modules, or levels in the current directory.
+- `cd <path_optional>`: Change working directory (relative or absolute paths supported).
+- `ls <path_optional>`: List dojos, modules, or levels in a directory.
 - `set-home <path>`: Set the default home directory.
 
 ### User Management
