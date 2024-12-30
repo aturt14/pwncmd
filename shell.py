@@ -89,13 +89,14 @@ def interactive_shell():
         readline.read_history_file(HISTORY_PATH)
     except FileNotFoundError:
         pass 
-    try:
-        while True:
+    while True:
+        try:
             cmd = prompt()
             if cmd: 
                 readline.add_history(cmd)
                 resolve_cmd(cmd)
-    except KeyboardInterrupt:
-        save_and_quit()
+        except KeyboardInterrupt:
+            print()
+            continue
 
 
