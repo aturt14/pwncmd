@@ -3,10 +3,10 @@ import globals
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
 
-def print_modules(modules_html):
+def print_modules(modules_html, where):
     names, progresses, paths = parse_modules(modules_html)
     if not (names and progresses and paths):
-        print("No modules found.")
+        print(f"No modules found in {where}.")
         return
     
     # Create a table for neatly displaying modules

@@ -18,7 +18,7 @@ import readline
 
 
 def resolve_cmd(cmd_str):
-    ONE_ARG = {"cd", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man", "flag"}
+    ONE_ARG = {"cd", "ls", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man", "flag"}
     commands = {
         "help" : help,
         "?" : help,

@@ -59,17 +59,17 @@ def print_colored_level(name, end = '\n'):
         print(f"{Fore.WHITE}{name}{Style.RESET_ALL}", end = end)
 
 
-def print_levels(levels_html):
-    names, _ = parse_levels(levels_html)  
+def print_levels(levels_html, where):
+    names, _ = parse_levels(levels_html, where)  
 
     if not names:
-        print(f"No levels found in {globals.pwd}.")
+        print(f"No levels found in {where}.")
         return
 
     terminal_width = shutil.get_terminal_size().columns
 
-    print(f"Levels in {globals.pwd}:")
-    print("-" * terminal_width)
+    print(f"Levels in {where}:")
+    print("+" + "-" * (terminal_width - 2) + "+")
     
 
     sorted_names = names
@@ -84,7 +84,7 @@ def print_levels(levels_html):
 
     print("-" * terminal_width)
 
-def parse_levels(levels_html):
+def parse_levels(levels_html, where):
     soup = BeautifulSoup(levels_html, 'html.parser')
     challenges = soup.find("div", {"id" : "challenges"})
     if not challenges:
@@ -98,10 +98,10 @@ def parse_levels(levels_html):
     ids = [id.get("value") for id in challenges.find_all('input', {'id' : 'challenge'})]
     challenge_ids = [chall_id.get("value") for chall_id in challenges.find_all('input', {'id' : 'challenge-id'})]
 
-    globals.current_level_descriptions = {"pwd" : globals.pwd}
+    globals.current_level_descriptions = {"pwd" : where}
     for name, description in zip(names, descriptions):
         globals.current_level_descriptions[name] = description
-    globals.current_level_ids = {"pwd" : globals.pwd}
+    globals.current_level_ids = {"pwd" : where}
     for name, id in zip(names, ids):
         globals.current_level_ids[name] = id
     for name, chall_id in zip(names, challenge_ids):

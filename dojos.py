@@ -25,7 +25,7 @@ def parse_dojos(dojos_html):
     return categories, names_by_category, progresses_by_category, paths_by_category
 
 
-def print_dojos(dojos_html):
+def print_dojos(dojos_html, where): # where is always unused since there is only one place with dojos
     categories, names_by_category, progresses_by_category, paths_by_category = parse_dojos(dojos_html)
 
     terminal_width = os.get_terminal_size().columns

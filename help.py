@@ -13,11 +13,11 @@ def help():
         "practice <level_name>" or "p <level_name>" - Practice <level_name>.
         "profile" - Check out your fantastic stats.
         "dojos" - Show dojos.
-        "ls" - List dojos/modules/levels in working directory.
+        "ls <optional_dir_name>" - List dojos/modules/levels in a directory.
         "set-home" - Set default home path.
         "remember-me" - Remember login credentials.
         "forget" - Forget and remove login credentials.
-        "cd" - Change working directory.
+        "cd <optional_dir_name>" - Change working directory.
         "desc <level_name>" or "x/s <level_name>" - Print description of <level_name>.
         "flag <flag_or_level_name>" - Submit flag for a specific level.
         "clear" : Clear screen.
@@ -137,7 +137,8 @@ def man(cmd_name):
     ...
     """
     MAN_LS = """
-    Lists dojos, modules, or levels in the current directory. This is an essential command for pwncmd. When you change directory (man cd) and want to see what dojos, modules or levels are there, you use ls. Note that ls can NOT be used with an argument. You always need to cd first.
+    Lists dojos, modules, or levels in the current directory if no argument is provided. If argv[1] is a valid directory, it lists the files there. 
+    This is an essential command for pwncmd. When you change directory (man cd) and want to see what dojos, modules or levels are there, you use ls. 
     Example:
 
     (pwncmd)-[/software-exploitation]
@@ -182,7 +183,7 @@ def man(cmd_name):
     """
     MAN_CD = """
     Changes the working directory to argv[1]. If no arguments given, changes working directory to home (see man set-home). You can use either absolute or relative paths. 
-    pwncmd works on a similar principle as UNIX's filesystem. Each route on pwn.college which contains either dojos, modules or levels can be interpreted as a directory which contains those files. When you cd to e.g. software-exploitation, you can then use ls to list all the modules there. In order to start a challenge, you need to have pwd = dojo/module_of_the_chall.
+    pwncmd works on a similar principle as UNIX's filesystem. Each route on pwn.college which contains either dojos, modules or levels can be interpreted as a directory which contains those files. When you cd to e.g. software-exploitation, you can then use ls to list all the modules there. In order to start a challenge, you need to have pwd = module_of_the_chall.
     Example:
 
     (pwncmd)-[/software-exploitation/file-struct-exploits]
