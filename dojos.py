@@ -5,6 +5,7 @@ import globals
 
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
+import os
 
 def parse_dojos(dojos_html):
     soup = BeautifulSoup(dojos_html, 'html.parser')
@@ -22,20 +23,23 @@ def parse_dojos(dojos_html):
         progresses_by_category[category] = progresses
         paths_by_category[category] = paths
     return categories, names_by_category, progresses_by_category, paths_by_category
-    
+
+
 def print_dojos(dojos_html):
     categories, names_by_category, progresses_by_category, paths_by_category = parse_dojos(dojos_html)
-    
+
+    terminal_width = os.get_terminal_size().columns
+
     for category in categories:
-        print(f"====== {category} =====")
-        
+        if not (names_by_category[category] and paths_by_category[category] and progresses_by_category[category]):
+            continue
         table = PrettyTable()
         table.field_names = ["Dojo", "Progress", "Path"] if globals.logged_in else ["Dojo", "Path"]
         table.align["Dojo"] = "l"
         table.align["Path"] = "r"
         if globals.logged_in:
-            table.align["Progress"] = "c" 
-        
+            table.align["Progress"] = "c"
+
         for name, progress, path in zip(names_by_category[category], progresses_by_category[category], paths_by_category[category]):
             path = path.replace("/dojo", "")
             if globals.logged_in:
@@ -43,8 +47,19 @@ def print_dojos(dojos_html):
                 table.add_row([name, f"{progress} %", path])
             else:
                 table.add_row([name, path])
-        
-        print(table)
+
+        table_string = table.get_string()
+        table_width = max(len(line) for line in table_string.splitlines())
+
+        category_line = f"====== {category} ======"
+        category_padding = (terminal_width - len(category_line)) // 2
+        centered_category = " " * category_padding + category_line
+        table_padding = (terminal_width - table_width) // 2
+        centered_table = "".join([" " * table_padding + line + "\n" for line in table_string.splitlines()])
+
+        print(centered_category)
+        print(centered_table)
+    
 
 def show_dojos():
     resp = globals.session.get(DOJOS_URL)
