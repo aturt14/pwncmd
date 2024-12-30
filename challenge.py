@@ -45,7 +45,7 @@ def start_challenge(level_name = None, practice = False):
     globals.running_level = level_name
     print(f"{level_name} started successfully!")
 
-def practice_challenge(level_name):
+def practice_challenge(level_name = None):
     start_challenge(level_name, True)
 
 
