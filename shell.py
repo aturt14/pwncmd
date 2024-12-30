@@ -79,6 +79,8 @@ def init_shell():
                     resolve_cmd(cmd.strip())
     except FileNotFoundError:
         pass
+    except KeyboardInterrupt:
+        save_and_quit()
 
 def interactive_shell():
     if not read_config():
