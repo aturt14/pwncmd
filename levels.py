@@ -69,7 +69,7 @@ def print_levels(levels_html, where):
     terminal_width = shutil.get_terminal_size().columns
 
     print(f"Levels in {where}:")
-    print("+" + "-" * (terminal_width - 2) + "+")
+    print("─" * terminal_width)
     
 
     sorted_names = names
@@ -82,7 +82,7 @@ def print_levels(levels_html, where):
         print_colored_level(level1, end = (16 - len(level1)) * ' ')
         print_colored_level(level2)
 
-    print("-" * terminal_width)
+    print("─" * terminal_width)
 
 def parse_levels(levels_html, where):
     soup = BeautifulSoup(levels_html, 'html.parser')
