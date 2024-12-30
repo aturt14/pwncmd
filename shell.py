@@ -52,7 +52,7 @@ def resolve_cmd(cmd_str):
         cmd_func = commands[argv0]
     except KeyError:
         try:
-            cmd = globals.config["aliases"][cmd_str]
+            cmd = globals.config["aliases"][cmd_str].split()
             argv0 = cmd[0]
             cmd_func = commands[argv0]
         except KeyError:
