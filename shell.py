@@ -98,5 +98,7 @@ def interactive_shell():
         except KeyboardInterrupt:
             print()
             continue
+        except EOFError:
+            save_and_quit()
 
 
