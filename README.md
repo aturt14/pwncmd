@@ -10,7 +10,7 @@
 - **Dojo Exploration:** List and interact with *dojos*, *modules*, and *levels*.
 - **Customizable Commands:** Set *home directories*, create *aliases*, and save credentials.
 - **Command History:** Automatically saves *command history*, enabling you to easily reuse or modify previous commands.
-- **Custom Startup Commands** Define commands to be executed at each shell launch.
+- **Custom Startup Commands:** Define commands to be executed at each shell launch.
 
 
 ## Installation
