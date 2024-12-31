@@ -25,6 +25,9 @@ def get_progress(html, filename):
 
 
 def show_progress(path = None):
+    if not globals.logged_in:
+        print("You are not logged in.")
+        return
     if not path:
         path = globals.pwd
     else:

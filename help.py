@@ -20,6 +20,7 @@ def help():
         "cd <optional_dir_name>" - Change working directory.
         "desc <level_name>" or "x/s <level_name>" - Print description of <level_name>.
         "flag <flag_or_level_name>" - Submit flag for a specific level.
+        "progress <optional_dir_name>" - Shows your progress in a dojo/module.
         "clear" : Clear screen.
         "q" or ":x" or "exit" or "quit" - Exit.
     """
@@ -27,7 +28,9 @@ def help():
     print("If something doesn't work as expected, RTFM.")
     print("If you are sure it is an error in the code, submit an issue to GitHub.")
 
-def man(cmd_name):
+def man(cmd_name = None):
+    if not cmd_name:
+        cmd_name = "man"
     MAN_HELP = """Displays the list of available commands."""
 
     MAN_MAN = """
@@ -213,6 +216,14 @@ def man(cmd_name):
     Flag: pwn.college{test}
     You already solved this
     """
+    MAN_PROGRESS = """
+    Shows your progress in the specified path, if no arguments provided, in pwd.
+    Example:
+
+    (pwncmd@m333)-[/software-exploitation/file-struct-exploits]
+    >> progress
+    Your progress in /software-exploitation/file-struct-exploits is 13.37 %.
+    """
     MAN_CLEAR = """
     Clears screen. Removes the waste you put in. Hides flags you entered.
     """
@@ -242,6 +253,7 @@ def man(cmd_name):
         "desc" : MAN_DESCRIPTION,
         "x/s" : MAN_DESCRIPTION,
         "flag" : MAN_FLAG,
+        "progress" : MAN_PROGRESS,
         "clear" : MAN_CLEAR,
         "q" : MAN_EXIT,
         ":x" : MAN_EXIT,
