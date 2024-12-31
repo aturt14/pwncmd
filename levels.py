@@ -20,7 +20,7 @@ def update_level_info():
     if resp.status_code != 200:
         print(f"Could not fetch {BASE_URL}{globals.pwd}!")
         return None
-    parse_levels(resp.text)
+    parse_levels(resp.text, globals.pwd)
 
 def get_level_id_by_name(level_name):
     if globals.current_level_ids["pwd"] != globals.pwd:
