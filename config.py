@@ -1,6 +1,6 @@
 # globals.config.py
 from constants import CONFIG_PATH, SAVE_CREDS_WARNING, SAVED_CREDS_PATH
-from utils import clean_path
+from utils import resolve_path
 import globals
 
 import ast
@@ -38,7 +38,7 @@ def forget_and_remove():
 def set_home(new_home = None):
     if not new_home:
         new_home = globals.pwd
-    new_home = clean_path(new_home)
+    new_home = resolve_path(new_home)
     globals.config["home"] = new_home
 
     write_config(globals.config)
