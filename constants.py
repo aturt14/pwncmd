@@ -21,7 +21,7 @@ DOJOS_ERR_MSG = "An error occurred while getting dojos:"
 PROGRESS_ERR_MSG = "An error occurred while trying to find progress:"
 
 
-SAVE_CREDS_WARNING = "You set remember creds to true. Be aware that this might not be secure."
+SAVE_CREDS_WARNING = "You have enabled the option to remember credentials. Please note that this may pose a security risk." # Be formal and nice
 
 INSECURE_KEY = bytes.fromhex("cafebabedeadbeef133713370ff1cebadbadbadbadcafebadbadbaddeadbeeff") # You totally don't see this
 

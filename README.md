@@ -60,6 +60,7 @@ A non-exhaustive list of commands (for more, see `help` in the shell):
 - `practice <level_name>` or `p <level_name>`: Start a level in practice mode.
 - `desc <level_name>` or `x/s <level_name>`: Print the description of a level.
 - `flag <flag_or_level_name>`: Submit flag for a specific level.
+- `progress <path_optional>`: Show progress for a dojo/module.
 
 ### Configuration
 
