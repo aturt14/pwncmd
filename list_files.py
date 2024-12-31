@@ -21,7 +21,6 @@ def list_files(where = None):
     if not where:
         where = globals.pwd
     effective_pwd = resolve_path(where)
-    print(f'{effective_pwd = }')
     filetype = effective_pwd.count('/') # 1 = "Dojo", 2 = "Module", 3 = "Level" other = "Unknown Type"
     if effective_pwd == "/":
         effective_pwd = "/dojos"

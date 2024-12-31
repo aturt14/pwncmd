@@ -9,6 +9,7 @@ from list_files import list_files
 from levels import print_level_description
 from cd import change_directory
 from flag import submit_flag
+from progress import show_progress
 from utils import clear_screen, save_and_quit
 from constants import COLOR1, COLOR2, COLOR3, CMD_NOT_FOUND_MSG, HISTORY_PATH, PWNCMDRC_PATH
 import globals
@@ -18,7 +19,7 @@ import readline
 
 
 def resolve_cmd(cmd_str):
-    ONE_ARG = {"cd", "ls", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man", "flag"}
+    ONE_ARG = {"cd", "ls", "set-home", "desc", "x/s", "start", "s", "practice", "p", "alias", "man", "flag", "progress"}
     commands = {
         "help" : help,
         "?" : help,
@@ -41,6 +42,7 @@ def resolve_cmd(cmd_str):
         "x/s" : print_level_description, # gdb vibes
         "flag" : submit_flag,
         "clear" : clear_screen,
+        "progress" : show_progress,
         "q" : save_and_quit,
         ":x" : save_and_quit,
         "exit" : save_and_quit,
