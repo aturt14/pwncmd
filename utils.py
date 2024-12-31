@@ -19,6 +19,14 @@ def clean_path(input_path):
     
     return valid_path.replace("//", '/')
 
+def resolve_path(path):
+    if path.startswith('/'):
+        # Absolute path
+        return clean_path(path)
+    else:
+        return clean_path(f"{globals.pwd}/{path}")
+
+
 
 def save_and_quit():
     readline.write_history_file(HISTORY_PATH)
